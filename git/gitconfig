@@ -1,0 +1,15 @@
+[user]
+    name = Dan Mayer
+    email = dan@mayerdan.com
+
+[init]
+    defaultBranch = main
+
+[pull]
+    rebase = false
+
+[color]
+    ui = auto
+
+[core]
+    editor = emacs -nw

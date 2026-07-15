@@ -1,0 +1,39 @@
+# zsh/zshrc — sourced from the ~/.zshrc stub that install.sh writes.
+# $DOTFILES_DIR is exported by that stub; this file assumes it's set.
+
+# --- history ---
+HISTFILE="$HOME/.zsh_history"
+HISTSIZE=10000
+SAVEHIST=10000
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_SPACE
+setopt SHARE_HISTORY
+setopt APPEND_HISTORY
+
+# --- completion ---
+autoload -Uz compinit
+compinit
+
+# --- directory navigation ---
+setopt AUTO_CD
+setopt AUTO_PUSHD
+setopt PUSHD_IGNORE_DUPS
+
+# --- prompt: directory + git branch, nothing fancier ---
+autoload -Uz vcs_info
+setopt PROMPT_SUBST
+zstyle ':vcs_info:git:*' formats ' (%b)'
+precmd() { vcs_info }
+PROMPT='%F{blue}%~%f%F{green}${vcs_info_msg_0_}%f %# '
+
+# --- editor ---
+export EDITOR="emacs -nw"
+export VISUAL="$EDITOR"
+
+# --- the rest of this repo's zsh config ---
+for f in path platform aliases functions; do
+  source "$DOTFILES_DIR/zsh/$f.zsh"
+done
+
+# --- untracked, per-machine additions ---
+[ -f "$HOME/.zshrc.local" ] && source "$HOME/.zshrc.local"

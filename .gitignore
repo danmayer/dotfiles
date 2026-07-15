@@ -1,2 +1,8 @@
-CONTEXT.md
+# Machine-specific / secret files — never tracked
+*.local
+*.local.*
+
+# Editor & OS cruft
 *~
+\#*\#
+.DS_Store

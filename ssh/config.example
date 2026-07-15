@@ -1,0 +1,10 @@
+# Example ~/.ssh/config. install.sh never touches the real ~/.ssh/config —
+# copy the parts you need by hand. Host-specific entries and key paths are
+# exactly the kind of machine-specific detail that doesn't belong tracked
+# in a public repo.
+
+# Host github.com
+#     User git
+#     IdentityFile ~/.ssh/id_ed25519
+#     AddKeysToAgent yes
+#     UseKeychain yes
