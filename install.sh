@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Idempotent. Safe to re-run any time, including non-interactively (this is
-# what GitHub Codespaces runs automatically after cloning this repo). See
-# README.md for the reasoning behind each piece of this.
+# what GitHub Codespaces and Ona run automatically after cloning this repo).
+# See README.md for the reasoning behind each piece of this.
 #
 # Written for bash 3.2 (macOS's stock /bin/bash) — no associative arrays,
 # no other 4.0+ features.
@@ -18,11 +18,15 @@ log() {
 
 IS_MACOS=0
 IS_CODESPACES=0
+IS_ONA=0
 case "$(uname -s)" in
   Darwin) IS_MACOS=1 ;;
 esac
 if [ -n "${CODESPACES:-}" ]; then
   IS_CODESPACES=1
+fi
+if [ "${IS_ON_ONA:-}" = "true" ]; then
+  IS_ONA=1
 fi
 
 # --- plain symlinks ---
@@ -150,9 +154,9 @@ fi
 
 # --- shell: best-effort, never blocks the rest of the script ---
 
-if [ "$IS_CODESPACES" -eq 0 ] && command -v chsh >/dev/null 2>&1 && command -v zsh >/dev/null 2>&1; then
+if [ "$IS_CODESPACES" -eq 0 ] && [ "$IS_ONA" -eq 0 ] && command -v chsh >/dev/null 2>&1 && command -v zsh >/dev/null 2>&1; then
   if [ "${SHELL:-}" != "$(command -v zsh)" ]; then
-    chsh -s "$(command -v zsh)" >/dev/null 2>&1 || log "Skipping chsh (no permission, or already handled)"
+    chsh -s "$(command -v zsh)" </dev/null >/dev/null 2>&1 || log "Skipping chsh (no permission, or already handled)"
   fi
 fi
 
