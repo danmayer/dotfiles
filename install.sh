@@ -106,18 +106,54 @@ write_gitconfig_stub() {
 
 write_gitconfig_stub
 
+# --- packages: install only what's actually missing, never touch what's
+# --- already there. Runs before the chsh step below so a just-installed
+# --- zsh is on PATH for that check.
+
+run_privileged() {
+  if [ "$(id -u)" -eq 0 ]; then
+    "$@"
+  elif command -v sudo >/dev/null 2>&1; then
+    sudo "$@"
+  else
+    log "No root and no sudo available, skipping: $*"
+    return 1
+  fi
+}
+
+# Homebrew (macOS). --no-upgrade: install anything from the Brewfile that's
+# missing, but never silently upgrade something already installed — this
+# config assumes the tools exist, it doesn't own their version.
+if [ "$IS_MACOS" -eq 1 ] && command -v brew >/dev/null 2>&1 && [ -f "$DOTFILES_DIR/Brewfile" ]; then
+  brew bundle --no-upgrade --file="$DOTFILES_DIR/Brewfile" || log "brew bundle failed, continuing"
+fi
+
+# apt (WSL, Codespaces, generic Linux). Same "only what's missing" rule —
+# Codespaces images already ship git; only really needs to fetch anything
+# on a fresh container when emacs isn't preinstalled.
+if [ "$(uname -s)" = "Linux" ] && command -v apt-get >/dev/null 2>&1; then
+  missing=""
+  for pkg in git zsh emacs; do
+    command -v "$pkg" >/dev/null 2>&1 || missing="$missing $pkg"
+  done
+
+  if [ -n "$missing" ]; then
+    log "Installing missing packages via apt:$missing"
+    export DEBIAN_FRONTEND=noninteractive
+    run_privileged apt-get update -y </dev/null || log "apt-get update failed, continuing"
+    # shellcheck disable=SC2086
+    run_privileged apt-get install -y $missing </dev/null || log "apt-get install failed, continuing"
+  else
+    log "git, zsh, emacs already present, skipping apt"
+  fi
+fi
+
 # --- shell: best-effort, never blocks the rest of the script ---
 
 if [ "$IS_CODESPACES" -eq 0 ] && command -v chsh >/dev/null 2>&1 && command -v zsh >/dev/null 2>&1; then
   if [ "${SHELL:-}" != "$(command -v zsh)" ]; then
     chsh -s "$(command -v zsh)" >/dev/null 2>&1 || log "Skipping chsh (no permission, or already handled)"
   fi
-fi
-
-# --- Homebrew (macOS only, skipped entirely elsewhere) ---
-
-if [ "$IS_MACOS" -eq 1 ] && [ "$IS_CODESPACES" -eq 0 ] && command -v brew >/dev/null 2>&1 && [ -f "$DOTFILES_DIR/Brewfile" ]; then
-  brew bundle --file="$DOTFILES_DIR/Brewfile" || log "brew bundle failed, continuing"
 fi
 
 log "dotfiles install complete"

@@ -136,17 +136,26 @@ written, beyond what a "just for my own Mac" script would need:
   writing, but not guaranteed), so `install.sh` resolves its own directory
   (`cd "$(dirname "$0")"`) and builds symlink targets off that, not off a
   path assumed from my machines.
-- **No sudo assumed.** Symlinking into `$HOME` and editing `~/.zshrc` never
-  need root. The one step that historically wants root — `chsh -s
-  $(which zsh)` — is wrapped in a check that no-ops (not errors) if `chsh`
-  isn't available or the shell is already zsh; Codespaces containers are
-  zsh-or-bash depending on image, and changing login shell isn't guaranteed
-  to affect the integrated terminal anyway, so this step is a best-effort
-  convenience, not a dependency of anything else in the script.
-- **Fast and offline-tolerant where possible.** The base symlink + zsh setup
-  needs no network. The only optional network step is `brew bundle` from
-  `Brewfile`, which is skipped entirely on Codespaces (`$CODESPACES` check)
-  so a flaky network during container creation can't break the base setup.
+- **No sudo required for the base setup.** Symlinking into `$HOME` and
+  writing the `~/.zshrc`/`~/.gitconfig` stubs never need root. Two later
+  steps use root if it's available (falling back to `sudo`, or skipping
+  outright with a log line if neither works, never blocking the rest of
+  the script): `apt-get install` for any of `git`/`zsh`/`emacs` that's
+  actually missing (see below), and `chsh -s $(which zsh)` — the latter is
+  wrapped in a check that no-ops if the shell is already zsh or `chsh`
+  isn't available; changing login shell isn't guaranteed to affect the
+  integrated terminal anyway, so it's a best-effort convenience, not a
+  dependency of anything else in the script.
+- **Installs only what's missing, nothing more.** The base symlink + zsh
+  setup needs no network at all. Two package-install steps exist — `brew
+  bundle --no-upgrade` on macOS, `apt-get install` on Linux (which is what
+  Codespaces and WSL both are) — and both check what's already present
+  first: a default Codespaces image already has `git`, so the only
+  realistic network/time cost on a fresh container is installing `emacs`
+  if it isn't there. Neither step reinstalls or upgrades something already
+  present, and a flaky network during container creation can't break the
+  base setup since packages are handled after the symlinks/stubs are
+  already in place.
 - **Idempotent re-run.** Same script runs on first create and on every
   manual `git pull && ./install.sh` afterward — no "first-run only" branch
   that would behave differently in Codespaces vs. an existing machine.
@@ -259,10 +268,10 @@ either falls out of them for free or is explicitly out of scope.
 
 | Platform | Status | Shell | Notes |
 |---|---|---|---|
-| macOS | Real, daily use — built and tested here | zsh (default since Catalina) | `Brewfile` covers the small CLI toolset assumed by the config |
-| WSL | Real, daily use on another machine (active Claude Code sessions there today) | zsh | First-class, not an afterthought; `platform.zsh` adds WSL-specific bits (e.g. clipboard interop) behind a `$WSL_DISTRO_NAME` check. Verified by pulling this repo on that machine, not from here |
-| GitHub Codespaces | Real, built and tested via an actual codespace | zsh | `install.sh` auto-run by Codespaces; detected via `$CODESPACES` to skip machine-only steps |
-| Linux (non-WSL) | Falls out of the WSL code path for free | zsh | Same `platform.zsh` branch as WSL minus the WSL-specific bits; not separately tested since it's not a real environment right now, but costs nothing extra to support |
+| macOS | Real, daily use — built and tested here | zsh (default since Catalina) | `brew bundle --no-upgrade` installs whichever of `git`/`zsh`/`emacs` from `Brewfile` is missing; never upgrades what's already there |
+| WSL | Real, daily use on another machine (active Claude Code sessions there today) | zsh | First-class, not an afterthought; `platform.zsh` adds WSL-specific bits (e.g. clipboard interop) behind a `$WSL_DISTRO_NAME` check. Same apt-based install-if-missing step as Codespaces. Verified by pulling this repo on that machine, not from here |
+| GitHub Codespaces | Real, built and tested via an actual codespace | zsh | `install.sh` auto-run by Codespaces; `apt-get install` only runs for whichever of `git`/`zsh`/`emacs` is missing from the image (typically just `emacs`) |
+| Linux (non-WSL) | Falls out of the WSL/Codespaces code path for free | zsh | Same apt-based install-if-missing step; not separately tested since it's not a real environment right now, but costs nothing extra to support |
 | Windows (native, no WSL) | Out of scope | — | See Non-goals |
 
 ## Using it on a new machine
