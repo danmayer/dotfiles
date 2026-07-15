@@ -1,0 +1,9 @@
+# Stub files, not symlinks, for `~/.zshrc` and `~/.gitconfig`
+
+The standard dotfiles pattern (used by this repo for every other file, and by the old private-dotfiles repo) is a direct symlink from `$HOME` into the tracked repo file. That pattern breaks for `~/.zshrc` and `~/.gitconfig` specifically, because other tools write to those exact paths by convention: installers (nvm, Homebrew formulas, LM Studio, etc.) auto-append `# Added by X` blocks straight to `~/.zshrc` — confirmed on this machine, which already had four such blocks in a 17-line file — and `git config --global` (called directly, or by `gh auth setup-git`, or by credential helpers) writes straight to `~/.gitconfig`. If either were a symlink into the repo, those writes would land in the tracked, public file: local machine noise showing up as dirty working tree state forever, or worse, something eventually leaking into the public repo.
+
+Decision: neither is a symlink.
+- `~/.zshrc` is an untracked stub containing a marker-delimited header that sources tracked `zsh/zshrc`; `install.sh` rewrites only the header on each run and never touches anything below the marker.
+- `~/.gitconfig` is an untracked file where `install.sh` ensures two lines are present — `[include] path = <repo>/git/gitconfig` and `[core] excludesfile = <repo>/git/gitignore_global` (both absolute paths resolved at install time, since `core.excludesfile` doesn't get git's relative-to-including-file path resolution) — and otherwise leaves alone. Since `~/.gitconfig` is already untracked and machine-specific, it also serves as the per-machine override file directly; there's no separate `.gitconfig.local`.
+
+Every other tracked file (`emacs/init.el`, etc.) keeps the plain symlink pattern — this deviation is scoped specifically to paths that non-dotfiles tools are known to write to.
