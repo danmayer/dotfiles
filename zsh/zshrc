@@ -35,5 +35,10 @@ for f in path platform aliases functions; do
   source "$DOTFILES_DIR/zsh/$f.zsh"
 done
 
+# --- keep private repos in sync (see private-repos.sh) without a manual
+# --- ./install.sh re-run; interactive shells only, throttled to once/day,
+# --- backgrounded so it never blocks shell startup.
+[[ -o interactive ]] && _dotfiles_sync_private_repos
+
 # --- untracked, per-machine additions ---
 [ -f "$HOME/.zshrc.local" ] && source "$HOME/.zshrc.local"

@@ -307,6 +307,17 @@ what a private repo's `bootstrap.sh` does is tracked, documented, or
 special-cased here beyond the generic clone/pull/run-if-executable
 contract above.
 
+The actual clone/pull/run-bootstrap logic lives in `private-repos.sh`, a
+small script `install.sh` calls at the end of provisioning. It's factored
+out on its own because it's also called a second way: on a persistent
+machine (a Mac, unlike Codespaces/Ona, is never "re-provisioned"),
+`zsh/functions.zsh` defines `_dotfiles_sync_private_repos`, called from
+`zsh/zshrc` on every *interactive* shell. It throttles itself to once per
+calendar day via a marker file in `$XDG_CACHE_HOME` (or `~/.cache`), and
+always runs in the background (`&`, `disown`), so opening a normal
+terminal never blocks on git or network -- new content just shows up
+within a day, no manual `./install.sh` re-run needed.
+
 ## Using it on a new machine
 
 Clone location isn't fixed — `install.sh` resolves its own directory at
