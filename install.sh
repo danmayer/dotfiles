@@ -160,4 +160,38 @@ if [ "$IS_CODESPACES" -eq 0 ] && [ "$IS_ONA" -eq 0 ] && command -v chsh >/dev/nu
   fi
 fi
 
+# --- private repos: untracked, machine-specific, never committed here ---
+# See README.md "Private repos" for the full contract. In short: this repo
+# stays public-safe by never tracking the actual list of private repos or
+# any of their content -- it only knows how to read that list from an
+# untracked local file, if one happens to exist on this machine/environment.
+
+PRIVATE_REPOS_FILE="$HOME/.dotfiles.private.sh"
+PRIVATE_REPOS=()
+
+if [ -f "$PRIVATE_REPOS_FILE" ]; then
+  # shellcheck disable=SC1090
+  source "$PRIVATE_REPOS_FILE"
+
+  if [ "${#PRIVATE_REPOS[@]}" -gt 0 ]; then
+    for entry in "${PRIVATE_REPOS[@]}"; do
+      repo_url="${entry%%|*}"
+      repo_dir="${entry#*|}"
+
+      if [ -d "$repo_dir/.git" ]; then
+        log "Updating private repo $repo_dir"
+        git -C "$repo_dir" pull --rebase --quiet || log "Pull failed for $repo_dir, continuing"
+      else
+        log "Cloning private repo -> $repo_dir"
+        git clone --quiet "$repo_url" "$repo_dir" || log "Clone failed for $repo_dir, continuing"
+      fi
+
+      if [ -x "$repo_dir/bootstrap.sh" ]; then
+        log "Running $repo_dir/bootstrap.sh"
+        "$repo_dir/bootstrap.sh" || log "$repo_dir/bootstrap.sh failed, continuing"
+      fi
+    done
+  fi
+fi
+
 log "dotfiles install complete"

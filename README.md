@@ -274,6 +274,39 @@ either falls out of them for free or is explicitly out of scope.
 | Linux (non-WSL) | Falls out of the WSL/Codespaces code path for free | zsh | Same apt-based install-if-missing step; not separately tested since it's not a real environment right now, but costs nothing extra to support |
 | Windows (native, no WSL) | Out of scope | — | See Non-goals |
 
+## Private repos
+
+`install.sh` has one small, generic, content-free extension point: near the
+end of the script, it looks for an untracked, machine-local file,
+`~/.dotfiles.private.sh`. If present, it defines a plain bash array of
+`url|local_dir` pairs; for each one, `install.sh` clones the repo (or pulls
+if it's already there) and, if the repo has an executable `bootstrap.sh` at
+its root, runs it.
+
+```sh
+# ~/.dotfiles.private.sh -- untracked, machine-specific, never committed here
+PRIVATE_REPOS=(
+  "git@github.com:youruser/your-private-repo.git|$HOME/your-private-repo"
+)
+```
+
+This exists so that machines/environments that need something beyond this
+public repo's scope -- private, personal, or work-specific config that
+should never be tracked in a public repo (see Non-goals) -- can still get
+it applied automatically on every fresh Ona/Codespaces environment, the
+same way this repo already is. `install.sh` itself never knows what's in
+that private repo, never names it, and never commits anything about it:
+the array lives only in the untracked local file, same pattern as
+`~/.zshrc.local`. On a machine without `~/.dotfiles.private.sh` -- anyone
+who forks or clones this public repo -- this step is a silent no-op.
+
+Each private repo owns its own `bootstrap.sh` and is responsible for
+whatever it writes (e.g. wiring `~/.claude/CLAUDE.md` or `~/.codex/AGENTS.md`).
+This repo's Non-goals ("Not AI tool config") still holds: nothing about
+what a private repo's `bootstrap.sh` does is tracked, documented, or
+special-cased here beyond the generic clone/pull/run-if-executable
+contract above.
+
 ## Using it on a new machine
 
 Clone location isn't fixed — `install.sh` resolves its own directory at
