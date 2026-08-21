@@ -13,3 +13,6 @@
 
 [core]
     editor = emacs -nw
+
+[includeIf "gitdir:/workspaces/"]
+    path = gitconfig-vanta

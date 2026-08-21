@@ -61,6 +61,7 @@ dotfiles/
 │
 ├── git/
 │   ├── gitconfig
+│   ├── gitconfig-vanta       # work email, included for repos under /workspaces/
 │   └── gitignore_global
 │
 ├── emacs/
@@ -216,6 +217,14 @@ doesn't get that treatment, so a relative value baked into the tracked file
 would resolve against the wrong directory on a machine where the repo is
 cloned somewhere else. Setting both lines directly in the untracked,
 already-machine-specific `~/.gitconfig` sidesteps the problem entirely.
+
+Work identity is handled inside the tracked config instead of per machine:
+`git/gitconfig` ends with a conditional include of `git/gitconfig-vanta`
+for any repo under `/workspaces/` (the Codespaces/Ona checkout path), which
+sets the work email and nothing else. The include path is relative, so it
+resolves next to `git/gitconfig` wherever the repo is cloned, and the
+trailing `/` on the `gitdir:` pattern makes it match recursively. Personal
+clones outside `/workspaces/` are unaffected.
 
 `install.sh` only checks that these two lines are present (adding them
 once if missing) and otherwise leaves `~/.gitconfig` alone — identity,
