@@ -50,6 +50,7 @@ Personal shell, editor, and git configuration — kept small on purpose.
 dotfiles/
 ├── README.md
 ├── install.sh              # symlinks + manages ~/.zshrc and ~/.gitconfig, idempotent
+├── post-start-install.sh   # Ona only: symlinks stateful dirs into the EFS network directory
 ├── Brewfile                 # optional, macOS only: brew bundle install
 │
 ├── zsh/
@@ -326,6 +327,37 @@ calendar day via a marker file in `$XDG_CACHE_HOME` (or `~/.cache`), and
 always runs in the background (`&`, `disown`), so opening a normal
 terminal never blocks on git or network -- new content just shows up
 within a day, no manual `./install.sh` re-run needed.
+
+## Ona (EFS network directory)
+
+Ona environments are ephemeral, but can optionally mount a persistent
+network directory (EFS) at `$EFS_MOUNT_POINT`, shared across every Ona
+environment for this user. `EFS_MOUNT_POINT` is set via this machine's Ona
+secrets, not by anything in this repo.
+
+`post-start-install.sh` is a separate hook from `install.sh` — Ona runs it
+automatically on every environment *start* (not just creation), by its own
+filename convention. If `EFS_MOUNT_POINT` is set, it symlinks a short list
+of stateful, per-user paths into it so they persist across environments:
+Claude Code and Codex session state, Cursor's server state, and shell
+history. It no-ops entirely if `EFS_MOUNT_POINT` isn't set — macOS, WSL,
+Codespaces, and an Ona box not using the network directory are all
+unaffected.
+
+It's deliberately narrow and doesn't revisit this repo's "Not AI tool
+config" non-goal above: it only relocates existing runtime state onto a
+persistent volume, the same way `~/.zsh_history` is just relocated, not
+authored or version-controlled here. `~/.zshrc`/`~/.zshenv`/`~/.zprofile`
+are left off the symlinked list on purpose — `~/.zshrc` is `install.sh`'s
+own untracked stub (see **zsh setup** above), and symlinking it into EFS
+would fight `install.sh` for ownership of that file on every re-run.
+`.oh-my-zsh` is left off too since this config doesn't use a framework
+(see Goals).
+
+Like `install.sh`, it's idempotent and safe to re-run: a path already
+linked to the right place is left alone, and the first time a given path
+is linked, whatever real file/directory exists there is moved (not
+deleted) into EFS so nothing is lost.
 
 ## Using it on a new machine
 
